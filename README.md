@@ -1,16 +1,18 @@
 # PB Manifest Resource Generator (PerMonitorV2)
 
 A small PureBasic tool that generates a Windows **RT_MANIFEST** resource as:
-- `Resource.rc`
-- `Data_1.bin`
+
+- `resource.rc`
+- `manifest.bin`
 
 The manifest enables:
+
 - **Per-Monitor DPI Aware v2 (PerMonitorV2)** with fallback to PerMonitor
 - optional **Modern Theme support** (Common-Controls v6)
 - optional **requestedExecutionLevel** (asInvoker / requireAdministrator)
 
 The output is intended to be embedded into your PureBasic EXE by adding the generated
-`Resource.rc` to **Compiler Options → Resources** in the PureBasic IDE.
+`resource.rc` to **Compiler Options → Resources** in the PureBasic IDE.
 
 ## Why this exists
 
@@ -21,9 +23,10 @@ PureBasic IDE can compile and link into the executable as part of the normal bui
 ## Output
 
 The tool writes files into a target folder (default: `resources/windows/manifest/`):
-- `Resource.rc`  
-  Contains `1 24 "Data_1.bin"` → Resource ID `1`, resource type `24` (RT_MANIFEST)
-- `Data_1.bin`  
+
+- `resource.rc`  
+  Contains `1 24 "manifest.bin"` → Resource ID `1`, resource type `24` (RT_MANIFEST)
+- `manifest.bin`  
   The manifest XML payload (ASCII file containing UTF-8 XML header)
 
 ## Repository Layout (recommended)
@@ -34,14 +37,14 @@ The tool writes files into a target folder (default: `resources/windows/manifest
 ├─ resources/  
 │ └─ windows/  
 │ └─ manifest/  
-│ ├─ Resource.rc  
-│ └─ Data_1.bin  
+│ ├─ resource.rc  
+│ └─ manifest.bin  
 ├─ LICENSE  
 └─ README.md  
 ```
 
 > Notes:
-- The generator can still run before builds to update output when settings change.
+> The generator can still run before builds to update output when settings change.
 
 ## Requirements
 
@@ -69,14 +72,17 @@ You can run the generator automatically before building your EXE:
 Now every build will regenerate the manifest resource before the final executable is created.
 
 ### Embed into your application
+
 In your application project:
+
 1. Open **Compiler Options**
 2. Go to **Resources**
-3. Add: `resources\windows\manifest\Resource.rc`
+3. Add: `resources\windows\manifest\resource.rc`
 4. Compile your application
-   
+  
 ### Important: avoid duplicate manifests
-If you embed your own RT_MANIFEST via `Resource.rc`, disable PureBasic’s own manifest/DPI options
+
+If you embed your own RT_MANIFEST via `resource.rc`, disable PureBasic’s own manifest/DPI options
 that might emit another manifest resource (depending on your PB setup). Use a single manifest
 source to avoid conflicts.
 
@@ -90,6 +96,7 @@ Edit constants near the top of `GenerateManifestResource.pb`:
 - `#OUT_REL_DIR$` (repo-relative output directory)
 
 ### DPI configuration emitted (PerMonitorV2)
+
 The generated manifest includes:
 
 - `<dpiAwareness>PerMonitorV2, PerMonitor</dpiAwareness>`
