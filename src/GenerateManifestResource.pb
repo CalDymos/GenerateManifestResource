@@ -84,7 +84,7 @@ EndProcedure
 Procedure WriteRcFile()
   If CreateFile(0, "resource.rc", #PB_Ascii)
     ; 24 = RT_MANIFEST, 1 = manifest resource ID
-    WriteString(0, ~"1 24 \"Data_1.bin\"" + #CRLF$)
+    WriteString(0, ~"1 24 \"manifest.bin\"" + #CRLF$)
     CloseFile(0)
   Else
     Debug "Error: Failed to create resource.rc"
