@@ -82,11 +82,7 @@ the generated manifest `manifest.bin` already contains:
 - PerMonitorV2 DPI awareness (+ fallback)
 
 > Note:  
-> As fallback `GenerateManifestResource` includes a sanitizer step that automatically updates the .pbp project file before build:  
->
-> - sets xpskin="0"  
-> - sets dpiaware="0"  
-> A .bak backup of the original .pbp is created before writing changes.  
+> the tool also checks if xpskin="0" and dpiaware="0"  
 
 ## Configuration
 

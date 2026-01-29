@@ -1,6 +1,6 @@
 ; -----------------------------------------------------------------------------
 ; GenerateManifestResource.pb
-; Version: 1.1.0
+; Version: 1.1.2
 ; Purpose: Generate a Win32 RT_MANIFEST resource (resource.rc + manifest.bin)
 ;          with PerMonitorV2 DPI awareness for embedding into the final EXE.
 ;
@@ -145,22 +145,39 @@ Procedure WriteManifestBin()
   CloseFile(0)
 EndProcedure
 
-Procedure.i SanitizePbpOptions(projectPath$)
-  Protected xml.i, root.i, optionsNode.i
-  Protected backupPath$
+Procedure.i IsLocalName(node.i, expected$)
+  Protected name$ = GetXMLNodeName(node)
+  If FindString(name$, ":")
+    name$ = StringField(name$, CountString(name$, ":") + 1, ":")
+  EndIf
+  ProcedureReturn Bool(LCase(name$) = LCase(expected$))
+EndProcedure
 
-  If LCase(GetExtensionPart(projectPath$)) <> "pbp"
+Procedure.i FindChildByLocalName(parent.i, childName$)
+  Protected node.i = ChildXMLNode(parent)
+  While node
+    If IsLocalName(node, childName$)
+      ProcedureReturn node
+    EndIf
+    node = NextXMLNode(node)
+  Wend
+  ProcedureReturn 0
+EndProcedure
+
+Procedure.i CheckPbpTargetsOptions(pbpPath$)
+  Protected xml.i, root.i, sectionTargets.i, targetNode.i, optionsNode.i
+  Protected sectionNode.i, sectionName$
+  Protected warnNeeded.i = #False
+
+  If LCase(GetExtensionPart(pbpPath$)) <> "pbp"
     ProcedureReturn #False
   EndIf
 
-  If FileSize(projectPath$) <= 0
+  If FileSize(pbpPath$) <= 0
     ProcedureReturn #False
   EndIf
 
-  backupPath$ = projectPath$ + ".bak"
-  CopyFile(projectPath$, backupPath$)
-
-  xml = LoadXML(#PB_Any, projectPath$)
+  xml = LoadXML(#PB_Any, pbpPath$)
   If xml = 0
     ProcedureReturn #False
   EndIf
@@ -171,41 +188,63 @@ Procedure.i SanitizePbpOptions(projectPath$)
     ProcedureReturn #False
   EndIf
 
-  ; Find the <options .../> node (direct child in typical .pbp structure)
-  optionsNode = ChildXMLNode(root)
-  While optionsNode
-    If LCase(GetXMLNodeName(optionsNode)) = "options"
-      Break
+  ; Find <section name="targets">
+  sectionNode = ChildXMLNode(root)
+  While sectionNode
+    If IsLocalName(sectionNode, "section")
+      sectionName$ = GetXMLAttribute(sectionNode, "name")
+      If LCase(sectionName$) = "targets"
+        sectionTargets = sectionNode
+        Break
+      EndIf
     EndIf
-    optionsNode = NextXMLNode(optionsNode)
+    sectionNode = NextXMLNode(sectionNode)
   Wend
 
-  If optionsNode = 0
+  If sectionTargets = 0
     FreeXML(xml)
     ProcedureReturn #False
   EndIf
 
-  ; Disable PB's built-in manifest options to avoid duplicate RT_MANIFEST conflicts
-  SetXMLAttribute(optionsNode, "xpskin", "0")
-  SetXMLAttribute(optionsNode, "dpiaware", "0")
+  ; Check all <target> options
+  targetNode = ChildXMLNode(sectionTargets)
+  While targetNode
+    If IsLocalName(targetNode, "target")
+      optionsNode = FindChildByLocalName(targetNode, "options")
+      If optionsNode
 
-  ; Save back
-  If SaveXML(xml, projectPath$) = 0
-    FreeXML(xml)
-    ProcedureReturn #False
-  EndIf
+        If GetXMLAttribute(optionsNode, "xpskin") <> "0"
+          warnNeeded = #True
+        EndIf
+
+        If GetXMLAttribute(optionsNode, "dpiaware") <> "0"
+          warnNeeded = #True
+        EndIf
+
+      EndIf
+    EndIf
+    targetNode = NextXMLNode(targetNode)
+  Wend
 
   FreeXML(xml)
+
+  If warnNeeded
+      MessageRequester("Warning",
+      "The 'DPIAware' And/Or 'XPSkin' options are enabled in the project." + #CRLF$ +
+      "These must be disabled so that the manifest can be integrated correctly.")
+  EndIf
+
   ProcedureReturn #True
 EndProcedure
 
-Procedure.i SanitizeProjectFromIdeEnv()
+Procedure.i CheckProjectFromIdeEnv()
   Protected projectPath$ = GetEnvironmentVariable("PB_TOOL_Project")
   If projectPath$ = ""
     ProcedureReturn #False
   EndIf
-  ProcedureReturn SanitizePbpOptions(projectPath$)
+  ProcedureReturn CheckPbpTargetsOptions(projectPath$)
 EndProcedure
+
 
 ; ###########################
 ; Main
@@ -219,8 +258,8 @@ WriteManifestBin()
 
 Debug "Manifest resources generated in: " + outDir$
 
-If Not SanitizeProjectFromIdeEnv()
-  Debug "Sanitize failed or no .pbp project detected."
+If Not CheckProjectFromIdeEnv()
+  Debug "Check failed or no .pbp project detected."
 Else
-  Debug "Sanitize OK: xpskin=0, dpiaware=0"
+  Debug "Check OK: xpskin=0, dpiaware=0"
 EndIf
