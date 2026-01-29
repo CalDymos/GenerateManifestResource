@@ -28,7 +28,7 @@ The tool writes files into a target folder (default: `resources/windows/manifest
 
 ## Repository Layout (recommended)
 
-´´´text
+```text
 ├─ src/  
 │ └─ GenerateManifestResource.pb  
 ├─ resources/  
@@ -38,7 +38,7 @@ The tool writes files into a target folder (default: `resources/windows/manifest
 │ └─ Data_1.bin  
 ├─ LICENSE  
 └─ README.md  
-´´´
+```
 
 > Notes:
 - The generator can still run before builds to update output when settings change.
