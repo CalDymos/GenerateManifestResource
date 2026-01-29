@@ -1,6 +1,7 @@
 ; -----------------------------------------------------------------------------
 ; GenerateManifestResource.pb
-; Purpose: Generate a Win32 RT_MANIFEST resource (Resource.rc + Data_1.bin)
+; Version: 1.1.0
+; Purpose: Generate a Win32 RT_MANIFEST resource (resource.rc + manifest.bin)
 ;          with PerMonitorV2 DPI awareness for embedding into the final EXE.
 ;
 ; Usage:
@@ -144,6 +145,68 @@ Procedure WriteManifestBin()
   CloseFile(0)
 EndProcedure
 
+Procedure.i SanitizePbpOptions(projectPath$)
+  Protected xml.i, root.i, optionsNode.i
+  Protected backupPath$
+
+  If LCase(GetExtensionPart(projectPath$)) <> "pbp"
+    ProcedureReturn #False
+  EndIf
+
+  If FileSize(projectPath$) <= 0
+    ProcedureReturn #False
+  EndIf
+
+  backupPath$ = projectPath$ + ".bak"
+  CopyFile(projectPath$, backupPath$)
+
+  xml = LoadXML(#PB_Any, projectPath$)
+  If xml = 0
+    ProcedureReturn #False
+  EndIf
+
+  root = MainXMLNode(xml)
+  If root = 0
+    FreeXML(xml)
+    ProcedureReturn #False
+  EndIf
+
+  ; Find the <options .../> node (direct child in typical .pbp structure)
+  optionsNode = ChildXMLNode(root)
+  While optionsNode
+    If LCase(GetXMLNodeName(optionsNode)) = "options"
+      Break
+    EndIf
+    optionsNode = NextXMLNode(optionsNode)
+  Wend
+
+  If optionsNode = 0
+    FreeXML(xml)
+    ProcedureReturn #False
+  EndIf
+
+  ; Disable PB's built-in manifest options to avoid duplicate RT_MANIFEST conflicts
+  SetXMLAttribute(optionsNode, "xpskin", "0")
+  SetXMLAttribute(optionsNode, "dpiaware", "0")
+
+  ; Save back
+  If SaveXML(xml, projectPath$) = 0
+    FreeXML(xml)
+    ProcedureReturn #False
+  EndIf
+
+  FreeXML(xml)
+  ProcedureReturn #True
+EndProcedure
+
+Procedure.i SanitizeProjectFromIdeEnv()
+  Protected projectPath$ = GetEnvironmentVariable("PB_TOOL_Project")
+  If projectPath$ = ""
+    ProcedureReturn #False
+  EndIf
+  ProcedureReturn SanitizePbpOptions(projectPath$)
+EndProcedure
+
 ; ###########################
 ; Main
 ; ###########################
@@ -155,3 +218,9 @@ WriteRcFile()
 WriteManifestBin()
 
 Debug "Manifest resources generated in: " + outDir$
+
+If Not SanitizeProjectFromIdeEnv()
+  Debug "Sanitize failed or no .pbp project detected."
+Else
+  Debug "Sanitize OK: xpskin=0, dpiaware=0"
+EndIf

@@ -68,9 +68,25 @@ In your application project:
   
 ### Important: avoid duplicate manifests
 
-If you embed your own RT_MANIFEST via `resource.rc`, disable PureBasic’s own manifest/DPI options
-that might emit another manifest resource (depending on your PB setup). Use a single manifest
-source to avoid conflicts.
+When embedding a custom RT_MANIFEST via `resource.rc` (type 24, id 1), PureBasic must **not** add its own manifest.
+Otherwise the linker fails with a duplicate MANIFEST resource error.
+
+Disable in **Compiler Options**:
+
+- ✅ Enable XP skin support  (must be OFF)
+- ✅ Enable DPI Aware Executable (must be OFF)
+
+the generated manifest `manifest.bin` already contains:
+
+- Common-Controls v6 (modern theme support)
+- PerMonitorV2 DPI awareness (+ fallback)
+
+> Note:  
+> As fallback `GenerateManifestResource` includes a sanitizer step that automatically updates the .pbp project file before build:  
+>
+> - sets xpskin="0"  
+> - sets dpiaware="0"  
+> A .bak backup of the original .pbp is created before writing changes.  
 
 ## Configuration
 
