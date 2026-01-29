@@ -29,21 +29,6 @@ The tool writes files into a target folder (default: `resources/windows/manifest
 - `manifest.bin`  
   The manifest XML payload (ASCII file containing UTF-8 XML header)
 
-## Repository Layout (recommended)
-
-```text
-├─ src/  
-│ └─ GenerateManifestResource.pb  
-├─ build/
-├─ resources/  
-│ └─ windows/  
-│ └─ manifest/  
-│ ├─ resource.rc  
-│ └─ manifest.bin  
-├─ LICENSE  
-└─ README.md  
-```
-
 > Notes:
 > The generator can still run before builds to update output when settings change.
 
