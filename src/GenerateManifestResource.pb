@@ -1,6 +1,6 @@
 ; -----------------------------------------------------------------------------
 ; GenerateManifestResource.pb
-; Version: 1.1.5
+; Version: 1.1.6
 ; Purpose: Generate a Win32 RT_MANIFEST resource (resource.rc + manifest.bin)
 ;          with PerMonitorV2 DPI awareness for embedding into the final EXE.
 ;
@@ -250,11 +250,11 @@ Procedure.i CheckPbpTargetsOptions(pbpPath$)
       optionsNode = FindChildByLocalName(targetNode, "options")
       If optionsNode
 
-        If GetXMLAttribute(optionsNode, "xpskin") <> "0"
+        If GetXMLAttribute(optionsNode, "xpskin") = "1"
           warnNeeded = #True
         EndIf
 
-        If GetXMLAttribute(optionsNode, "dpiaware") <> "0"
+        If GetXMLAttribute(optionsNode, "dpiaware") = "1"
           warnNeeded = #True
         EndIf
 
