@@ -28,16 +28,16 @@ The tool writes files into a target folder (default: `resources/windows/manifest
 
 ## Repository Layout (recommended)
 
-´´´
-├─ src/
-│ └─ GenerateManifestResource.pb
-├─ resources/
-│ └─ windows/
-│ └─ manifest/
-│ ├─ Resource.rc
-│ └─ Data_1.bin
-├─ LICENSE
-└─ README.md
+´´´text
+├─ src/  
+│ └─ GenerateManifestResource.pb  
+├─ resources/  
+│ └─ windows/  
+│ └─ manifest/  
+│ ├─ Resource.rc  
+│ └─ Data_1.bin  
+├─ LICENSE  
+└─ README.md  
 ´´´
 
 > Notes:
