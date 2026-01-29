@@ -34,6 +34,7 @@ The tool writes files into a target folder (default: `resources/windows/manifest
 ```text
 ├─ src/  
 │ └─ GenerateManifestResource.pb  
+├─ build/
 ├─ resources/  
 │ └─ windows/  
 │ └─ manifest/  
