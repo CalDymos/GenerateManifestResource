@@ -1,6 +1,6 @@
 ; -----------------------------------------------------------------------------
 ; GenerateManifestResource.pb
-; Version: 1.1.2
+; Version: 1.1.5
 ; Purpose: Generate a Win32 RT_MANIFEST resource (resource.rc + manifest.bin)
 ;          with PerMonitorV2 DPI awareness for embedding into the final EXE.
 ;
@@ -15,7 +15,7 @@ EnableExplicit
 ; Settings
 ; ###########################
 #ENABLE_MODERN_THEME_SUPPORT = #True
-#ENABLE_PER_MONITOR_V2       = #True
+#DEFAULT_DPI_MODE$ = "pmv2" ; pmv2 | system | off
 
 ; Set to empty string to omit trustInfo.
 #REQUEST_EXECUTION_LEVEL$    = "asInvoker" ; or "requireAdministrator"
@@ -56,16 +56,25 @@ Procedure EnsureDirectory(dirPath$)
   Next
 EndProcedure
 
+Procedure.i IsDpiMode(value$)
+  Protected v$ = LCase(Trim(value$))
+  ProcedureReturn Bool(v$ = "pmv2" Or v$ = "system" Or v$ = "off")
+EndProcedure
+
 Procedure.s GetOutputDir()
   Protected outDir$ = ""
+  Protected p0$ = ""
 
   If CountProgramParameters() > 0
-    outDir$ = ProgramParameter(0)
+    p0$ = ProgramParameter(0)
+
+    ; If param0 is a known DPI mode, treat it as mode (no outDir override)
+    If Not IsDpiMode(p0$)
+      outDir$ = p0$
+    EndIf
   EndIf
 
   If outDir$ = ""
-    ; Provided by PB IDE external tools environment.
-    ; If not present, fallback to current directory.
     Protected projectFile$ = GetEnvironmentVariable("PB_TOOL_Project")
     If projectFile$ <> ""
       outDir$ = GetPathPart(projectFile$) + #OUT_REL_DIR$
@@ -80,6 +89,25 @@ Procedure.s GetOutputDir()
   EndIf
 
   ProcedureReturn outDir$
+EndProcedure
+
+Procedure.s GetDpiMode()
+  Protected mode$ = #DEFAULT_DPI_MODE$
+
+  If CountProgramParameters() >= 2
+    mode$ = ProgramParameter(1)
+  ElseIf CountProgramParameters() = 1
+    If IsDpiMode(ProgramParameter(0))
+      mode$ = ProgramParameter(0)
+    EndIf
+  EndIf
+
+  mode$ = LCase(Trim(mode$))
+  If Not IsDpiMode(mode$)
+    mode$ = #DEFAULT_DPI_MODE$
+  EndIf
+
+  ProcedureReturn mode$
 EndProcedure
 
 Procedure WriteRcFile()
@@ -98,7 +126,9 @@ Procedure WriteManifestBin()
     Debug "Error: Failed to create manifest.bin"
     End
   EndIf
-
+  
+  Protected dpiMode$ = GetDpiMode()
+  
   WriteString(0, ~"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" + #LF$)
   WriteString(0, ~"<assembly xmlns=\"urn:schemas-microsoft-com:asm.v1\" manifestVersion=\"1.0\">" + #LF$)
 
@@ -116,20 +146,27 @@ Procedure WriteManifestBin()
     WriteString(0, ~"    </dependentAssembly>" + #LF$)
     WriteString(0, ~"  </dependency>" + #LF$)
   EndIf
-
-  If #ENABLE_PER_MONITOR_V2
+  
+  If dpiMode$ <> "off"
     WriteString(0, ~"  <asmv3:application xmlns:asmv3=\"urn:schemas-microsoft-com:asm.v3\">" + #LF$)
     WriteString(0, ~"    <asmv3:windowsSettings>" + #LF$)
-
-    ; Fallback for older systems (Per-Monitor v1)
-    WriteString(0, ~"      <dpiAware xmlns=\"http://schemas.microsoft.com/SMI/2005/WindowsSettings\">true/pm</dpiAware>" + #LF$)
-
-    ; Per-Monitor v2 (Win10+), ordered fallback list
-    WriteString(0, ~"      <dpiAwareness xmlns=\"http://schemas.microsoft.com/SMI/2016/WindowsSettings\">PerMonitorV2, PerMonitor</dpiAwareness>" + #LF$)
-
+  
+    Select dpiMode$
+      Case "pmv2"
+        WriteString(0, ~"      <dpiAware xmlns=\"http://schemas.microsoft.com/SMI/2005/WindowsSettings\">true/pm</dpiAware>" + #LF$)
+        WriteString(0, ~"      <dpiAwareness xmlns=\"http://schemas.microsoft.com/SMI/2016/WindowsSettings\">PerMonitorV2, PerMonitor</dpiAwareness>" + #LF$)
+  
+      Case "system"
+        ; System DPI awareness
+        WriteString(0, ~"      <dpiAware xmlns=\"http://schemas.microsoft.com/SMI/2005/WindowsSettings\">true</dpiAware>" + #LF$)
+        ; Optional: You can also emit dpiAwareness=System, but dpiAware=true is widely used.
+        ; WriteString(0, ~"      <dpiAwareness xmlns=\"http://schemas.microsoft.com/SMI/2016/WindowsSettings\">System</dpiAwareness>" + #LF$)
+    EndSelect
+  
     WriteString(0, ~"    </asmv3:windowsSettings>" + #LF$)
     WriteString(0, ~"  </asmv3:application>" + #LF$)
   EndIf
+
 
   If #REQUEST_EXECUTION_LEVEL$ <> ""
     WriteString(0, ~"  <trustInfo xmlns=\"urn:schemas-microsoft-com:asm.v2\">" + #LF$)

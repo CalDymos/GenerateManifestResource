@@ -51,7 +51,14 @@ You can run the generator automatically before building your EXE:
    - **Tools → Configure Tools…**
    - Add a new tool:
      - **Command-line:** path to `GenerateManifestResource.exe`
-     - **Arguments:** leave empty (default output directory) or pass a custom folder
+     - **Arguments:**  
+       - *(optional)* `<outputDir>` to override the default output folder  
+       - *(optional)* `<dpiMode>` to control DPI awareness: `pmv2` | `system` | `off`  
+       - Examples:
+         - *(default output, PerMonitorV2)*: *(leave empty)*
+         - *(default output, System aware)*: `system`
+         - *(custom output, PerMonitorV2)*: `resources\windows\manifest\ pmv2`
+         - *(custom output, System aware)*: `resources\windows\manifest\ system`
      - **Trigger:** **Before create Executable**
      - Enable **Wait until tool quits**
 
@@ -89,7 +96,7 @@ the generated manifest `manifest.bin` already contains:
 Edit constants near the top of `GenerateManifestResource.pb`:
 
 - `#ENABLE_MODERN_THEME_SUPPORT`
-- `#ENABLE_PER_MONITOR_V2`
+- `#DEFAULT_DPI_MODE$` (default DPI-Mode)
 - `#REQUEST_EXECUTION_LEVEL$` (`"asInvoker"`, `"requireAdministrator"`, or empty to omit)
 - `#OUT_REL_DIR$` (repo-relative output directory)
 
@@ -97,6 +104,6 @@ Edit constants near the top of `GenerateManifestResource.pb`:
 
 The generated manifest includes:
 
-- `<dpiAwareness>PerMonitorV2, PerMonitor</dpiAwareness>`
+- `<dpiAwareness>PerMonitorV2, PerMonitor</dpiAwareness>` or `<dpiAwareness>System</dpiAwareness>`
 - `<dpiAware>true/pm</dpiAware>` as fallback for older systems
   
